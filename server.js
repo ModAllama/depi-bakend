@@ -1,6 +1,5 @@
 require("dotenv").config();
-
-import path from "path";
+const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
@@ -18,19 +17,19 @@ const shopReviewRouter = require("./routes/shop/review-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 
-//create a database connection -> u can also
-const db_url = process.env.db_url;
+// Create a database connection
+const db_url = process.env.DB_URL; // Make sure environment variable is correctly named
 mongoose
   .connect(db_url)
   .then(() => console.log("MongoDB connected"))
   .catch((error) => console.log(error));
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     methods: ["GET", "POST", "DELETE", "PUT"],
     allowedHeaders: [
       "Content-Type",
@@ -58,10 +57,18 @@ app.use("/api/shop/review", shopReviewRouter);
 
 app.use("/api/common/feature", commonFeatureRouter);
 
+// Serve static files
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "client", "dist")));
+  app.get("*", (req, res) => {
+    res.sendFile(path.resolve(__dirname, "client", "dist", "index.html"));
+  });
+}
 
-app.use(express.static(path.join(__dirname, "/client/dist")));
-app.get("*", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "client", "dist", "index.html"));
-})
+// Export the app for Vercel
+module.exports = app;
 
-app.listen(PORT, () => console.log(`Server is now running on port ${PORT}`));
+// Start the server locally
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
+}
